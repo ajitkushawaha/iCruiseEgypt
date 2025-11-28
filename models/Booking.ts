@@ -9,6 +9,16 @@ export interface IBooking extends Document {
     date: Date;
     guests: number;
     status: 'pending' | 'confirmed' | 'cancelled';
+    // Payment fields
+    confirmationCode?: string;
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+    transactionId?: string;
+    paymentMethod?: 'card' | 'paypal' | 'bank_transfer' | 'cash';
+    totalAmount?: number;
+    currency?: string;
+    paidAmount?: number;
+    // Additional fields
+    notes?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,6 +37,21 @@ const BookingSchema: Schema = new Schema(
             enum: ['pending', 'confirmed', 'cancelled'],
             default: 'pending'
         },
+        confirmationCode: { type: String, unique: true, sparse: true },
+        paymentStatus: {
+            type: String,
+            enum: ['pending', 'paid', 'failed', 'refunded'],
+            default: 'pending'
+        },
+        transactionId: { type: String },
+        paymentMethod: {
+            type: String,
+            enum: ['card', 'paypal', 'bank_transfer', 'cash'],
+        },
+        totalAmount: { type: Number },
+        currency: { type: String, default: 'USD' },
+        paidAmount: { type: Number },
+        notes: { type: String },
     },
     {
         timestamps: true,

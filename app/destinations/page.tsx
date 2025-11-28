@@ -1,113 +1,165 @@
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
-import Image from 'next/image';
-import { MapPin, Clock, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import Image from "next/image"
+import Link from "next/link"
+import { ArrowRight, MapPin, Ship, Star } from "lucide-react"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
+import { Button } from "@/components/ui/button"
+
+export const metadata = {
+  title: "Destinations - iCruiseEgypt",
+  description:
+    "Explore Egypt's most beautiful cruise destinations - Nile River, Red Sea, Luxor, Aswan, and Alexandria.",
+}
 
 const destinations = [
-    {
-        name: 'Luxor',
-        description: 'The world\'s greatest open-air museum, home to the Valley of the Kings and Karnak Temple.',
-        image: '/hero.png',
-        highlights: ['Valley of the Kings', 'Karnak Temple', 'Luxor Temple', 'Hatshepsut Temple'],
-        cruises: 4,
-    },
-    {
-        name: 'Aswan',
-        description: 'A tranquil Nubian city known for its beautiful islands and the magnificent Philae Temple.',
-        image: '/deck.png',
-        highlights: ['Philae Temple', 'High Dam', 'Unfinished Obelisk', 'Nubian Villages'],
-        cruises: 5,
-    },
-    {
-        name: 'Cairo',
-        description: 'Egypt\'s vibrant capital, gateway to the iconic Pyramids of Giza and the Egyptian Museum.',
-        image: '/cabin.png',
-        highlights: ['Pyramids of Giza', 'Egyptian Museum', 'Khan el-Khalili', 'Citadel of Saladin'],
-        cruises: 2,
-    },
-];
+  {
+    id: "nile",
+    name: "Nile River",
+    description:
+      "Journey through the heart of ancient Egypt along the world's longest river. Discover temples, tombs, and timeless beauty.",
+    image: "/hero.png",
+    cruises: 68,
+    rating: 4.9,
+    highlights: ["Luxor Temple", "Valley of the Kings", "Karnak", "Edfu Temple"],
+    duration: "3-7 Days",
+  },
+  {
+    id: "redsea",
+    name: "Red Sea",
+    description: "Crystal-clear waters, vibrant coral reefs, and world-class diving await in Egypt's Red Sea paradise.",
+    image: "/deck.png",
+    cruises: 42,
+    rating: 4.8,
+    highlights: ["Coral Reefs", "Diving Sites", "Marine Life", "Pristine Beaches"],
+    duration: "4-10 Days",
+  },
+  {
+    id: "luxor",
+    name: "Luxor",
+    description: "The world's greatest open-air museum. Explore ancient Thebes, the city of pharaohs and gods.",
+    image: "/hero.png",
+    cruises: 45,
+    rating: 4.9,
+    highlights: ["Karnak Temple", "Luxor Temple", "Valley of Queens", "Colossi of Memnon"],
+    duration: "2-5 Days",
+  },
+  {
+    id: "aswan",
+    name: "Aswan",
+    description:
+      "Where the Nile is at its most beautiful. Experience Nubian culture, ancient temples, and serene landscapes.",
+    image: "/cabin.png",
+    cruises: 38,
+    rating: 4.8,
+    highlights: ["Philae Temple", "High Dam", "Abu Simbel", "Nubian Villages"],
+    duration: "2-4 Days",
+  },
+  {
+    id: "alexandria",
+    name: "Alexandria",
+    description: "The pearl of the Mediterranean. Discover Greco-Roman heritage and Egypt's cosmopolitan coastal city.",
+    image: "/deck.png",
+    cruises: 18,
+    rating: 4.7,
+    highlights: ["Library of Alexandria", "Citadel of Qaitbay", "Corniche", "Roman Amphitheater"],
+    duration: "1-3 Days",
+  },
+  {
+    id: "cairo",
+    name: "Cairo",
+    description: "The city that never sleeps. Combine Nile cruises with visits to the Pyramids and Egyptian Museum.",
+    image: "/hero.png",
+    cruises: 32,
+    rating: 4.8,
+    highlights: ["Pyramids of Giza", "Egyptian Museum", "Khan el-Khalili", "Sphinx"],
+    duration: "2-4 Days",
+  },
+]
 
 export default function DestinationsPage() {
-    return (
-        <main className="min-h-screen bg-white font-sans">
-            <Navbar />
+  return (
+    <main className="min-h-screen bg-background">
+      <Header />
+      <div className="pt-20 md:pt-24">
+        <div className="bg-primary py-16 md:py-24">
+          <div className="container mx-auto px-4 text-center">
+            <span className="inline-block px-4 py-2 bg-secondary/20 text-secondary rounded-full text-sm font-medium mb-4">
+              Explore Egypt
+            </span>
+            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-4 text-balance">
+              Discover Amazing Destinations
+            </h1>
+            <p className="text-primary-foreground/80 max-w-2xl mx-auto text-lg">
+              From the ancient temples of the Nile to the crystal waters of the Red Sea, find your perfect Egyptian
+              adventure
+            </p>
+          </div>
+        </div>
 
-            {/* Hero Section */}
-            <div className="bg-blue-900 text-white pt-24 pb-12">
-                <div className="container mx-auto px-4">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-4">Explore Egypt's Wonders</h1>
-                    <p className="text-blue-200 text-lg max-w-2xl">
-                        Discover the ancient treasures and timeless beauty of Egypt's most iconic destinations along the Nile.
-                    </p>
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid gap-8">
+            {destinations.map((destination, index) => (
+              <div
+                key={destination.id}
+                className={`flex flex-col ${index % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"} gap-8 items-center`}
+              >
+                <div className="lg:w-1/2">
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden">
+                    <Image
+                      src={destination.image || "/hero.png"}
+                      alt={destination.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute top-4 left-4 flex gap-2">
+                      <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium">
+                        {destination.cruises} Cruises
+                      </span>
+                    </div>
+                  </div>
                 </div>
-            </div>
 
-            {/* Destinations Grid */}
-            <div className="container mx-auto px-4 py-16">
-                <div className="space-y-16">
-                    {destinations.map((destination, index) => (
-                        <div
-                            key={destination.name}
-                            className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-8 items-center`}
-                        >
-                            {/* Image */}
-                            <div className="w-full lg:w-1/2">
-                                <div className="relative h-80 rounded-xl overflow-hidden shadow-lg">
-                                    <Image
-                                        src={destination.image}
-                                        alt={destination.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                            </div>
+                <div className="lg:w-1/2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-secondary" />
+                    <span className="text-secondary font-medium text-sm">Egypt</span>
+                  </div>
+                  <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">{destination.name}</h2>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">{destination.description}</p>
 
-                            {/* Content */}
-                            <div className="w-full lg:w-1/2 space-y-6">
-                                <div>
-                                    <h2 className="text-3xl font-bold text-blue-900 mb-3 flex items-center gap-2">
-                                        <MapPin className="h-8 w-8 text-amber-500" />
-                                        {destination.name}
-                                    </h2>
-                                    <p className="text-gray-600 text-lg leading-relaxed">
-                                        {destination.description}
-                                    </p>
-                                </div>
-
-                                {/* Highlights */}
-                                <div>
-                                    <h3 className="text-xl font-semibold text-gray-900 mb-3">Top Highlights</h3>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {destination.highlights.map((highlight) => (
-                                            <div key={highlight} className="flex items-center gap-2 text-gray-700">
-                                                <Star className="h-4 w-4 text-amber-500 fill-current" />
-                                                <span>{highlight}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* CTA */}
-                                <div className="flex items-center gap-4 pt-4">
-                                    <Link href={`/cruises?destination=${destination.name}`}>
-                                        <Button className="bg-blue-900 hover:bg-blue-800">
-                                            View {destination.cruises} Cruises
-                                        </Button>
-                                    </Link>
-                                    <p className="text-sm text-gray-500">
-                                        <Clock className="h-4 w-4 inline mr-1" />
-                                        3-8 day cruises available
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {destination.highlights.map((highlight) => (
+                      <span key={highlight} className="px-3 py-1.5 bg-muted rounded-full text-sm text-foreground">
+                        {highlight}
+                      </span>
                     ))}
-                </div>
-            </div>
+                  </div>
 
-            <Footer />
-        </main>
-    );
+                  <div className="flex items-center gap-6 mb-6">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-5 w-5 fill-secondary text-secondary" />
+                      <span className="font-medium">{destination.rating}</span>
+                      <span className="text-muted-foreground text-sm">rating</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Ship className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">{destination.duration}</span>
+                    </div>
+                  </div>
+
+                  <Link href={`/cruises?destination=${destination.id}`}>
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      Explore Cruises
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </main>
+  )
 }
