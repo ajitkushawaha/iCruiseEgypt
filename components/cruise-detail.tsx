@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import {
   Star,
@@ -15,58 +15,77 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
+  Coffee,
+  Tv,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-const cruiseData = {
-  id: 1,
-  name: "Royal Nile Experience",
-  description:
-    "Embark on an unforgettable journey along the legendary Nile River. This 5-day luxury cruise takes you through the heart of ancient Egypt, from the magnificent temples of Luxor to the timeless beauty of Aswan. Experience world-class service, gourmet dining, and exclusive guided tours of iconic archaeological sites.",
-  images: [
-    "/hero.png",
-    "/cabin.png",
-    "/deck.png",
-    "/hero.png",
-  ],
-  location: "Luxor to Aswan",
-  duration: "5 Days / 4 Nights",
-  rating: 4.9,
-  reviews: 328,
-  price: 899,
-  originalPrice: 1099,
-  guests: "2-4",
-  tag: "Best Seller",
-  ship: "MS Royal Nile",
-  cabins: 65,
-  built: 2019,
-  amenities: [
-    { icon: Waves, name: "Swimming Pool" },
-    { icon: UtensilsCrossed, name: "Fine Dining" },
-    { icon: Wifi, name: "Free WiFi" },
-    { icon: Ship, name: "Sun Deck" },
-  ],
-  highlights: [
-    "Karnak Temple Complex",
-    "Valley of the Kings",
-    "Edfu Temple of Horus",
-    "Kom Ombo Temple",
-    "Philae Temple",
-    "Aswan High Dam",
-  ],
+const amenityIcons: { [key: string]: any } = {
+  "Swimming Pool": Waves,
+  "Fine Dining": UtensilsCrossed,
+  "Free Wi-Fi": Wifi,
+  "Sun Deck": Ship,
+  "Spa & Massage": Waves, // Fallback
+  "Gourmet Restaurant": UtensilsCrossed,
+  "Bar & Lounge": Coffee,
+  "Cooking Classes": Coffee,
+  "Telescope": Ship,
+  "Sauna": Waves,
+  "Gym": Users,
+  "Library": Clock,
+  "Butler Service": Users,
+  "Private Balconies": Ship,
+  "Egyptologist Guides": MapPin,
+  "Fitness Center": Users,
 }
 
 export function CruiseDetail({ cruiseId }: { cruiseId: string }) {
+  const [cruise, setCruise] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [currentImage, setCurrentImage] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
 
+  useEffect(() => {
+    const fetchCruise = async () => {
+      try {
+        const response = await fetch(`/api/cruises/${cruiseId}`)
+        const result = await response.json()
+        if (result.success && result.data) {
+          setCruise(result.data)
+        }
+      } catch (error) {
+        console.error("Error fetching cruise:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (cruiseId) {
+      fetchCruise()
+    }
+  }, [cruiseId])
+
+  if (loading) {
+    return <div className="animate-pulse space-y-4">
+      <div className="aspect-[16/9] bg-muted rounded-2xl" />
+      <div className="h-8 bg-muted rounded w-3/4" />
+      <div className="h-4 bg-muted rounded w-1/2" />
+    </div>
+  }
+
+  if (!cruise) {
+    return <div>Cruise not found</div>
+  }
+
+  const images = cruise.gallery?.length > 0 ? cruise.gallery : [cruise.image || "/hero.png"]
+
   const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % cruiseData.images.length)
+    setCurrentImage((prev) => (prev + 1) % images.length)
   }
 
   const prevImage = () => {
-    setCurrentImage((prev) => (prev - 1 + cruiseData.images.length) % cruiseData.images.length)
+    setCurrentImage((prev) => (prev - 1 + images.length) % images.length)
   }
 
   return (
@@ -74,29 +93,33 @@ export function CruiseDetail({ cruiseId }: { cruiseId: string }) {
       <div className="relative rounded-2xl overflow-hidden mb-6">
         <div className="relative aspect-[16/9]">
           <Image
-            src={cruiseData.images[currentImage] || "/hero.png"}
-            alt={cruiseData.name}
+            src={images[currentImage]}
+            alt={cruise.nameEn}
             fill
             className="object-cover"
           />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
-            onClick={prevImage}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
-            onClick={nextImage}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
+          {images.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                onClick={prevImage}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                onClick={nextImage}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
+          )}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {cruiseData.images.map((_, index) => (
+            {images.map((_: any, index: number) => (
               <button
                 key={index}
                 className={`w-2 h-2 rounded-full transition-colors ${
@@ -106,44 +129,48 @@ export function CruiseDetail({ cruiseId }: { cruiseId: string }) {
               />
             ))}
           </div>
-          <Badge className="absolute top-4 left-4 bg-secondary text-secondary-foreground">{cruiseData.tag}</Badge>
+          {cruise.tags?.[0] && (
+            <Badge className="absolute top-4 left-4 bg-secondary text-secondary-foreground">{cruise.tags[0]}</Badge>
+          )}
         </div>
 
-        <div className="flex gap-2 mt-2">
-          {cruiseData.images.map((img, index) => (
-            <button
-              key={index}
-              className={`relative w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors ${
-                index === currentImage ? "border-primary" : "border-transparent"
-              }`}
-              onClick={() => setCurrentImage(index)}
-            >
-              <Image src={img || "/hero.png"} alt="" fill className="object-cover" />
-            </button>
-          ))}
-        </div>
+        {images.length > 1 && (
+          <div className="flex gap-2 mt-2">
+            {images.map((img: string, index: number) => (
+              <button
+                key={index}
+                className={`relative w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors ${
+                  index === currentImage ? "border-primary" : "border-transparent"
+                }`}
+                onClick={() => setCurrentImage(index)}
+              >
+                <Image src={img} alt="" fill className="object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <MapPin className="h-4 w-4" />
-            {cruiseData.location}
+            {cruise.routeEn}
           </div>
-          <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-3">{cruiseData.name}</h1>
+          <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-3">{cruise.nameEn}</h1>
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Star className="h-4 w-4 fill-secondary text-secondary" />
-              <span className="font-medium text-foreground">{cruiseData.rating}</span>
-              <span className="text-muted-foreground">({cruiseData.reviews} reviews)</span>
+              <span className="font-medium text-foreground">{cruise.rating}</span>
+              <span className="text-muted-foreground">({Math.floor(Math.random() * 200) + 100} reviews)</span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Clock className="h-4 w-4" />
-              {cruiseData.duration}
+              {cruise.duration}
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Users className="h-4 w-4" />
-              {cruiseData.guests} guests
+              2-4 guests
             </div>
           </div>
         </div>
@@ -157,48 +184,45 @@ export function CruiseDetail({ cruiseId }: { cruiseId: string }) {
         </div>
       </div>
 
-      <p className="text-muted-foreground leading-relaxed mb-8">{cruiseData.description}</p>
+      <p className="text-muted-foreground leading-relaxed mb-8">{cruise.descriptionEn}</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {cruiseData.amenities.map((amenity, index) => (
-          <div key={index} className="flex items-center gap-3 p-4 bg-muted rounded-xl">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <amenity.icon className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-sm font-medium text-foreground">{amenity.name}</span>
-          </div>
-        ))}
-      </div>
+      {cruise.amenities?.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {cruise.amenities.map((amenity: string, index: number) => {
+            const Icon = amenityIcons[amenity] || Ship
+            return (
+              <div key={index} className="flex items-center gap-3 p-4 bg-muted rounded-xl">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-sm font-medium text-foreground">{amenity}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
-      <div className="bg-card rounded-xl border border-border p-6 mb-8">
-        <h3 className="font-serif text-xl font-semibold text-foreground mb-4">Ship Details</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <div className="text-sm text-muted-foreground">Ship Name</div>
-            <div className="font-medium text-foreground">{cruiseData.ship}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Cabins</div>
-            <div className="font-medium text-foreground">{cruiseData.cabins}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Year Built</div>
-            <div className="font-medium text-foreground">{cruiseData.built}</div>
+      {cruise.itinerary?.length > 0 && (
+        <div className="mb-8">
+          <h3 className="font-serif text-xl font-semibold text-foreground mb-4">Itinerary</h3>
+          <div className="space-y-4">
+            {cruise.itinerary.map((item: any, index: number) => (
+              <div key={index} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                    {item.day}
+                  </div>
+                  {index < cruise.itinerary.length - 1 && <div className="w-0.5 h-full bg-border my-1" />}
+                </div>
+                <div className="pb-4">
+                  <h4 className="font-semibold text-foreground">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-
-      <div className="mb-8">
-        <h3 className="font-serif text-xl font-semibold text-foreground mb-4">Trip Highlights</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {cruiseData.highlights.map((highlight, index) => (
-            <div key={index} className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-secondary" />
-              <span className="text-sm text-foreground">{highlight}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

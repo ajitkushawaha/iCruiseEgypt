@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Transfer from '@/models/Transfer';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
-
         const searchParams = request.nextUrl.searchParams;
         const from = searchParams.get('from');
         const to = searchParams.get('to');
@@ -15,48 +12,51 @@ export async function GET(request: NextRequest) {
         const available = searchParams.get('available');
 
         // Build query
-        let query: any = {};
+        let where: any = {};
 
         if (from) {
-            query.$or = [
-                { fromLocationEn: { $regex: from, $options: 'i' } },
-                { fromLocationAr: { $regex: from, $options: 'i' } },
+            where.OR = [
+                { fromLocationEn: { contains: from, mode: 'insensitive' } },
+                { fromLocationAr: { contains: from, mode: 'insensitive' } },
             ];
         }
 
         if (to) {
-            const toQuery: any = {
-                $or: [
-                    { toLocationEn: { $regex: to, $options: 'i' } },
-                    { toLocationAr: { $regex: to, $options: 'i' } },
+            const toWhere = {
+                OR: [
+                    { toLocationEn: { contains: to, mode: 'insensitive' } },
+                    { toLocationAr: { contains: to, mode: 'insensitive' } },
                 ]
             };
             
-            if (query.$or) {
+            if (where.OR) {
                 // Combine with AND logic
-                query = { $and: [query, toQuery] };
+                where = { AND: [{ OR: where.OR }, toWhere] };
             } else {
-                Object.assign(query, toQuery);
+                Object.assign(where, toWhere);
             }
         }
 
         if (type && ['airport', 'hotel', 'port', 'custom'].includes(type)) {
-            query.type = type;
+            where.type = type;
         }
 
         if (vehicleType && ['sedan', 'van', 'bus', 'luxury'].includes(vehicleType)) {
-            query.vehicleType = vehicleType;
+            where.vehicleType = vehicleType;
         }
 
         if (minCapacity) {
-            query.capacity = { $gte: parseInt(minCapacity) };
+            where.capacity = { gte: parseInt(minCapacity) };
         }
 
         if (available === 'true') {
-            query.available = true;
+            where.available = true;
         }
 
-        const transfers = await Transfer.find(query).sort({ price: 1 });
+        const transfers = await prisma.transfer.findMany({
+            where,
+            orderBy: { price: 'asc' }
+        });
 
         return NextResponse.json({ success: true, data: transfers });
     } catch (error: any) {
@@ -70,8 +70,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
-
         const body = await request.json();
 
         // Validate required fields
@@ -82,23 +80,25 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const transfer = await Transfer.create({
-            nameEn: body.nameEn,
-            nameAr: body.nameAr,
-            descriptionEn: body.descriptionEn || '',
-            descriptionAr: body.descriptionAr || '',
-            fromLocationEn: body.fromLocationEn || '',
-            fromLocationAr: body.fromLocationAr || '',
-            toLocationEn: body.toLocationEn || '',
-            toLocationAr: body.toLocationAr || '',
-            type: body.type,
-            vehicleType: body.vehicleType || 'sedan',
-            capacity: body.capacity || 4,
-            price: body.price,
-            currency: body.currency || 'USD',
-            duration: body.duration || 60,
-            image: body.image,
-            available: body.available !== false,
+        const transfer = await prisma.transfer.create({
+            data: {
+                nameEn: body.nameEn,
+                nameAr: body.nameAr,
+                descriptionEn: body.descriptionEn || '',
+                descriptionAr: body.descriptionAr || '',
+                fromLocationEn: body.fromLocationEn || '',
+                fromLocationAr: body.fromLocationAr || '',
+                toLocationEn: body.toLocationEn || '',
+                toLocationAr: body.toLocationAr || '',
+                type: body.type,
+                vehicleType: body.vehicleType || 'sedan',
+                capacity: body.capacity || 4,
+                price: body.price,
+                currency: body.currency || 'USD',
+                duration: body.duration || 60,
+                image: body.image,
+                available: body.available !== false,
+            }
         });
 
         return NextResponse.json(

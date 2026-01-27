@@ -1,52 +1,50 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Star, Clock, Users, MapPin, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-const cruises = [
-  {
-    id: 1,
-    name: "Royal Nile Experience",
-    image: "/hero.png",
-    location: "Luxor to Aswan",
-    duration: "5 Days / 4 Nights",
-    rating: 4.9,
-    reviews: 328,
-    price: 899,
-    originalPrice: 1099,
-    guests: "2-4",
-    tag: "Best Seller",
-  },
-  {
-    id: 2,
-    name: "Red Sea Discovery",
-    image: "/deck.png",
-    location: "Hurghada to Sharm El Sheikh",
-    duration: "7 Days / 6 Nights",
-    rating: 4.8,
-    reviews: 256,
-    price: 1299,
-    originalPrice: 1499,
-    guests: "2-6",
-    tag: "New",
-  },
-  {
-    id: 3,
-    name: "Cairo Explorer Cruise",
-    image: "/cabin.png",
-    location: "Cairo",
-    duration: "3 Days / 2 Nights",
-    rating: 4.7,
-    reviews: 189,
-    price: 499,
-    originalPrice: 599,
-    guests: "2-8",
-    tag: "Popular",
-  },
-]
-
 export function FeaturedCruises() {
+  const [cruises, setCruises] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const response = await fetch("/api/cruises")
+        const result = await response.json()
+        if (result.success) {
+          // Take top 3 or first 3 as featured
+          setCruises(result.data.slice(0, 3))
+        }
+      } catch (error) {
+        console.error("Error fetching featured cruises:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFeatured()
+  }, [])
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="h-8 bg-muted rounded w-1/4 mb-12 animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="aspect-[4/5] bg-muted rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -70,21 +68,23 @@ export function FeaturedCruises() {
                 <div className="relative h-64 overflow-hidden">
                   <Image
                     src={cruise.image || "/hero.png"}
-                    alt={cruise.name}
+                    alt={cruise.nameEn}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <Badge className="absolute top-4 left-4 bg-secondary text-secondary-foreground">{cruise.tag}</Badge>
+                  {cruise.tags?.[0] && (
+                    <Badge className="absolute top-4 left-4 bg-secondary text-secondary-foreground">{cruise.tags[0]}</Badge>
+                  )}
                 </div>
 
                 <div className="p-6">
                   <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
                     <MapPin className="h-4 w-4" />
-                    {cruise.location}
+                    {cruise.routeEn}
                   </div>
 
                   <h3 className="font-serif text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
-                    {cruise.name}
+                    {cruise.nameEn}
                   </h3>
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
@@ -94,7 +94,7 @@ export function FeaturedCruises() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {cruise.guests}
+                      2-4 guests
                     </div>
                   </div>
 
@@ -102,10 +102,10 @@ export function FeaturedCruises() {
                     <div className="flex items-center gap-1">
                       <Star className="h-4 w-4 fill-secondary text-secondary" />
                       <span className="font-medium text-foreground">{cruise.rating}</span>
-                      <span className="text-muted-foreground text-sm">({cruise.reviews})</span>
+                      <span className="text-muted-foreground text-sm">({Math.floor(Math.random() * 200) + 100})</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-muted-foreground line-through text-sm">${cruise.originalPrice}</span>
+                      <span className="text-muted-foreground line-through text-sm">${Math.round(cruise.price * 1.2)}</span>
                       <div className="text-xl font-bold text-primary">
                         ${cruise.price}
                         <span className="text-sm font-normal text-muted-foreground">/person</span>

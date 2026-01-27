@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type Cruise, sortCruises } from "@/lib/cruise-data"
 
 interface CruiseGridProps {
-  cruises: Cruise[]
+  cruises: any[]
 }
 
 export function CruiseGrid({ cruises }: CruiseGridProps) {
@@ -25,7 +25,26 @@ export function CruiseGrid({ cruises }: CruiseGridProps) {
     setFavorites((prev) => (prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id]))
   }
 
-  const sortedCruises = sortCruises(cruises, sortBy)
+  // Helper to map DB cruise to display cruise format if needed
+  // For now assuming API returns compatible format or we adjust here
+  const displayCruises = cruises.map(cruise => ({
+    ...cruise,
+    id: cruise.id,
+    name: cruise.nameEn,
+    location: cruise.routeEn,
+    description: cruise.descriptionEn,
+    image: cruise.image || "/hero.png",
+    rating: cruise.rating,
+    reviews: Math.floor(Math.random() * 200) + 100, // Mock reviews count
+    price: cruise.price,
+    originalPrice: Math.round(cruise.price * 1.2),
+    guests: "2-4",
+    tag: cruise.tags?.[0] || "Featured",
+    amenities: cruise.amenities || [],
+    duration: cruise.duration
+  }))
+
+  const sortedCruises = sortCruises(displayCruises, sortBy)
 
   return (
     <div>
@@ -134,7 +153,7 @@ export function CruiseGrid({ cruises }: CruiseGridProps) {
 
                     {viewMode === "list" && (
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {cruise.amenities.slice(0, 4).map((amenity) => (
+                        {cruise.amenities.slice(0, 4).map((amenity: string) => (
                           <span key={amenity} className="px-2 py-1 bg-muted rounded-md text-xs text-muted-foreground">
                             {amenity}
                           </span>

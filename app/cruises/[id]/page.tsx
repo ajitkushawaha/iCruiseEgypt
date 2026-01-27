@@ -26,7 +26,7 @@ export default async function CruiseDetailPage({ params }: { params: Promise<{ i
               <CruiseReviews />
             </div>
             <aside className="lg:w-96 shrink-0">
-              <BookingPanel />
+              <BookingPanel cruiseId={id} />
             </aside>
           </div>
           <RelatedCruises />

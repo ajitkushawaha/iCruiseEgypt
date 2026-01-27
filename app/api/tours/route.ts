@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Tour from '@/models/Tour';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
-
         const searchParams = request.nextUrl.searchParams;
         const location = searchParams.get('location');
         const category = searchParams.get('category');
@@ -14,35 +11,41 @@ export async function GET(request: NextRequest) {
         const maxPrice = searchParams.get('maxPrice');
         const minRating = searchParams.get('minRating');
 
-        // Build query
-        const query: any = {};
+        // Build where clause
+        const where: any = {};
 
         if (location) {
-            query.$or = [
-                { locationEn: { $regex: location, $options: 'i' } },
-                { locationAr: { $regex: location, $options: 'i' } },
+            where.OR = [
+                { locationEn: { contains: location, mode: 'insensitive' } },
+                { locationAr: { contains: location, mode: 'insensitive' } },
             ];
         }
 
         if (category && ['historical', 'adventure', 'cultural', 'leisure', 'photography'].includes(category)) {
-            query.category = category;
+            where.category = category;
         }
 
         if (available === 'true') {
-            query.available = true;
+            where.available = true;
         }
 
         if (minPrice || maxPrice) {
-            query.price = {};
-            if (minPrice) query.price.$gte = parseFloat(minPrice);
-            if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+            where.price = {};
+            if (minPrice) where.price.gte = parseFloat(minPrice);
+            if (maxPrice) where.price.lte = parseFloat(maxPrice);
         }
 
         if (minRating) {
-            query.rating = { $gte: parseFloat(minRating) };
+            where.rating = { gte: parseFloat(minRating) };
         }
 
-        const tours = await Tour.find(query).sort({ rating: -1, price: 1 });
+        const tours = await prisma.tour.findMany({
+            where,
+            orderBy: [
+                { rating: 'desc' },
+                { price: 'asc' }
+            ]
+        });
 
         return NextResponse.json({ success: true, data: tours });
     } catch (error: any) {
@@ -56,8 +59,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
-
         const body = await request.json();
 
         // Validate required fields
@@ -68,27 +69,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const tour = await Tour.create({
-            nameEn: body.nameEn,
-            nameAr: body.nameAr,
-            descriptionEn: body.descriptionEn || '',
-            descriptionAr: body.descriptionAr || '',
-            images: body.images || [],
-            duration: body.duration || '3 hours',
-            durationHours: body.durationHours || 3,
-            price: body.price,
-            currency: body.currency || 'USD',
-            category: body.category,
-            locationEn: body.locationEn || '',
-            locationAr: body.locationAr || '',
-            itinerary: body.itinerary || [],
-            includes: body.includes || [],
-            excludes: body.excludes || [],
-            meetingPointEn: body.meetingPointEn || '',
-            meetingPointAr: body.meetingPointAr || '',
-            available: body.available !== false,
-            maxParticipants: body.maxParticipants || 20,
-            rating: body.rating || 0,
+        const tour = await prisma.tour.create({
+            data: {
+                nameEn: body.nameEn,
+                nameAr: body.nameAr,
+                descriptionEn: body.descriptionEn || '',
+                descriptionAr: body.descriptionAr || '',
+                images: body.images || [],
+                duration: body.duration || '3 hours',
+                durationHours: body.durationHours || 3,
+                price: body.price,
+                currency: body.currency || 'USD',
+                category: body.category,
+                locationEn: body.locationEn || '',
+                locationAr: body.locationAr || '',
+                itinerary: body.itinerary || [],
+                includes: body.includes || [],
+                excludes: body.excludes || [],
+                meetingPointEn: body.meetingPointEn || '',
+                meetingPointAr: body.meetingPointAr || '',
+                available: body.available !== false,
+                maxParticipants: body.maxParticipants || 20,
+                rating: body.rating || 0,
+            }
         });
 
         return NextResponse.json(
@@ -103,4 +106,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-

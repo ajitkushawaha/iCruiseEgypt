@@ -7,7 +7,6 @@ import { Footer } from "@/components/footer"
 import { CruiseFilters } from "@/components/cruise-filters"
 import { CruiseGrid } from "@/components/cruise-grid"
 import { CruiseListingSkeleton } from "@/components/cruise-listing-skeleton"
-import { allCruises, filterCruises } from "@/lib/cruise-data"
 
 function CruisesContent() {
   const searchParams = useSearchParams()
@@ -17,6 +16,8 @@ function CruisesContent() {
   const initialDestination = searchParams.get("destination") || ""
   const initialGuests = searchParams.get("guests") ? Number.parseInt(searchParams.get("guests")!) : undefined
 
+  const [cruises, setCruises] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [priceRange, setPriceRange] = useState([0, 3000])
   const [selectedDestinations, setSelectedDestinations] = useState<string[]>(
     initialDestination && initialDestination !== "all" ? [initialDestination] : [],
@@ -24,6 +25,30 @@ function CruisesContent() {
   const [selectedDurations, setSelectedDurations] = useState<string[]>([])
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [guests, setGuests] = useState<number | undefined>(initialGuests)
+
+  useEffect(() => {
+    const fetchCruises = async () => {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams()
+        if (selectedDestinations.length > 0) params.append('destination', selectedDestinations[0])
+        params.append('minPrice', priceRange[0].toString())
+        params.append('maxPrice', priceRange[1].toString())
+        
+        const response = await fetch(`/api/cruises?${params.toString()}`)
+        const result = await response.json()
+        if (result.success) {
+          setCruises(result.data)
+        }
+      } catch (error) {
+        console.error('Error fetching cruises:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCruises()
+  }, [priceRange, selectedDestinations])
 
   useEffect(() => {
     if (initializedRef.current) return
@@ -40,17 +65,6 @@ function CruisesContent() {
     }
   }, [searchParams])
 
-  const filteredCruises = useMemo(() => {
-    return filterCruises(allCruises, {
-      destination: selectedDestinations.length === 1 ? selectedDestinations[0] : undefined,
-      minPrice: priceRange[0],
-      maxPrice: priceRange[1],
-      duration: selectedDurations.length > 0 ? selectedDurations : undefined,
-      type: selectedTypes.length > 0 ? selectedTypes : undefined,
-      guests: guests,
-    })
-  }, [priceRange, selectedDestinations, selectedDurations, selectedTypes, guests])
-
   const clearFilters = () => {
     setPriceRange([0, 3000])
     setSelectedDestinations([])
@@ -58,6 +72,8 @@ function CruisesContent() {
     setSelectedTypes([])
     setGuests(undefined)
   }
+
+  if (loading) return <CruiseListingSkeleton />
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -76,7 +92,7 @@ function CruisesContent() {
           />
         </aside>
         <div className="flex-1">
-          <CruiseGrid cruises={filteredCruises} />
+          <CruiseGrid cruises={cruises} />
         </div>
       </div>
     </div>

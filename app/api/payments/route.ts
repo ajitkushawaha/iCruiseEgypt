@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Booking from '@/models/Booking';
+import prisma from '@/lib/prisma';
 import { generateConfirmationCode } from '@/lib/payments/config';
 
 /**
@@ -8,8 +7,6 @@ import { generateConfirmationCode } from '@/lib/payments/config';
  */
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
     const body = await request.json();
     const {
       bookingId,
@@ -28,7 +25,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Find booking
-    const booking = await Booking.findById(bookingId);
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId }
+    });
+    
     if (!booking) {
       return NextResponse.json(
         { success: false, error: 'Booking not found' },
@@ -37,27 +37,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate confirmation code if not exists
-    if (!booking.confirmationCode) {
-      booking.confirmationCode = generateConfirmationCode();
+    let confirmationCode = booking.confirmationCode;
+    if (!confirmationCode) {
+      confirmationCode = generateConfirmationCode();
     }
 
     // Update payment information
-    booking.paymentStatus = 'paid';
-    booking.paymentMethod = paymentMethod;
-    booking.transactionId = transactionId;
-    booking.totalAmount = amount;
-    booking.currency = currency;
-    booking.paidAmount = amount;
-    booking.status = 'confirmed';
-
-    await booking.save();
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        paymentStatus: 'paid',
+        paymentMethod,
+        transactionId,
+        totalAmount: amount,
+        currency,
+        paidAmount: amount,
+        status: 'confirmed',
+        confirmationCode
+      }
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        bookingId: booking._id,
-        confirmationCode: booking.confirmationCode,
-        paymentStatus: booking.paymentStatus,
+        bookingId: updatedBooking.id,
+        confirmationCode: updatedBooking.confirmationCode,
+        paymentStatus: updatedBooking.paymentStatus,
       },
     });
   } catch (error: any) {
@@ -74,8 +79,6 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get('bookingId');
     const confirmationCode = searchParams.get('confirmationCode');
@@ -89,9 +92,13 @@ export async function GET(request: NextRequest) {
 
     let booking;
     if (bookingId) {
-      booking = await Booking.findById(bookingId);
+      booking = await prisma.booking.findUnique({
+        where: { id: bookingId }
+      });
     } else if (confirmationCode) {
-      booking = await Booking.findOne({ confirmationCode });
+      booking = await prisma.booking.findFirst({
+        where: { confirmationCode }
+      });
     }
 
     if (!booking) {
@@ -104,7 +111,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        bookingId: booking._id,
+        bookingId: booking.id,
         confirmationCode: booking.confirmationCode,
         paymentStatus: booking.paymentStatus,
         totalAmount: booking.totalAmount,

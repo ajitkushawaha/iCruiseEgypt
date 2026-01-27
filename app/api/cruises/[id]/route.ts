@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Cruise from '@/models/Cruise';
+import prisma from '@/lib/prisma';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB();
         const { id } = await params;
 
-        const cruise = await Cruise.findById(id);
+        const cruise = await prisma.cruise.findUnique({
+            where: { id }
+        });
 
         if (!cruise) {
             return NextResponse.json(

@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Commission from '@/models/Commission';
-import Booking from '@/models/Booking';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
     try {
-        await connectDB();
-
         const searchParams = request.nextUrl.searchParams;
         const partnerId = searchParams.get('partnerId');
         const status = searchParams.get('status');
@@ -14,26 +10,30 @@ export async function GET(request: NextRequest) {
         const endDate = searchParams.get('endDate');
 
         // Build query
-        const query: any = {};
+        const where: any = {};
 
         if (partnerId) {
-            query.partnerId = partnerId;
+            where.partnerId = partnerId;
         }
 
         if (status && ['pending', 'approved', 'paid', 'cancelled'].includes(status)) {
-            query.status = status;
+            where.status = status;
         }
 
         if (startDate || endDate) {
-            query.createdAt = {};
-            if (startDate) query.createdAt.$gte = new Date(startDate);
-            if (endDate) query.createdAt.$lte = new Date(endDate);
+            where.createdAt = {};
+            if (startDate) where.createdAt.gte = new Date(startDate);
+            if (endDate) where.createdAt.lte = new Date(endDate);
         }
 
-        const commissions = await Commission.find(query)
-            .populate('bookingId')
-            .populate('cruiseId')
-            .sort({ createdAt: -1 });
+        const commissions = await prisma.commission.findMany({
+            where,
+            include: {
+                booking: true,
+                cruise: true,
+            },
+            orderBy: { createdAt: 'desc' }
+        });
 
         return NextResponse.json({ success: true, data: commissions });
     } catch (error: any) {
@@ -47,8 +47,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        await connectDB();
-
         const body = await request.json();
 
         // Validate required fields
@@ -62,16 +60,18 @@ export async function POST(request: NextRequest) {
         // Calculate commission amount
         const commissionAmount = (body.amount * body.commissionRate) / 100;
 
-        const commission = await Commission.create({
-            partnerId: body.partnerId,
-            bookingId: body.bookingId,
-            cruiseId: body.cruiseId,
-            amount: body.amount,
-            commissionRate: body.commissionRate,
-            commissionAmount,
-            currency: body.currency || 'USD',
-            status: body.status || 'pending',
-            notes: body.notes,
+        const commission = await prisma.commission.create({
+            data: {
+                partnerId: body.partnerId,
+                bookingId: body.bookingId,
+                cruiseId: body.cruiseId,
+                amount: body.amount,
+                commissionRate: body.commissionRate,
+                commissionAmount,
+                currency: body.currency || 'USD',
+                status: body.status || 'pending',
+                notes: body.notes,
+            }
         });
 
         return NextResponse.json(
@@ -90,17 +90,20 @@ export async function POST(request: NextRequest) {
 // Calculate and create commission when booking is confirmed
 export async function calculateCommission(bookingId: string, partnerId: string, commissionRate: number = 10) {
     try {
-        await connectDB();
-
-        const booking = await Booking.findById(bookingId);
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId }
+        });
+        
         if (!booking || booking.status !== 'confirmed') {
             return null;
         }
 
         // Check if commission already exists
-        const existingCommission = await Commission.findOne({
-            bookingId,
-            partnerId,
+        const existingCommission = await prisma.commission.findFirst({
+            where: {
+                bookingId,
+                partnerId,
+            }
         });
 
         if (existingCommission) {
@@ -110,15 +113,17 @@ export async function calculateCommission(bookingId: string, partnerId: string, 
         const totalAmount = booking.totalAmount || 0;
         const commissionAmount = (totalAmount * commissionRate) / 100;
 
-        const commission = await Commission.create({
-            partnerId,
-            bookingId,
-            cruiseId: booking.cruiseId,
-            amount: totalAmount,
-            commissionRate,
-            commissionAmount,
-            currency: booking.currency || 'USD',
-            status: 'pending',
+        const commission = await prisma.commission.create({
+            data: {
+                partnerId,
+                bookingId,
+                cruiseId: booking.cruiseId,
+                amount: totalAmount,
+                commissionRate,
+                commissionAmount,
+                currency: booking.currency || 'USD',
+                status: 'pending',
+            }
         });
 
         return commission;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar, Users, Shield, Clock, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,25 +15,60 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export function BookingPanel() {
+export function BookingPanel({ cruiseId }: { cruiseId: string }) {
+  const [cruise, setCruise] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [guests, setGuests] = useState("2")
   const [date, setDate] = useState("")
   const [isBooking, setIsBooking] = useState(false)
 
-  const basePrice = 899
+  useEffect(() => {
+    const fetchCruise = async () => {
+      try {
+        const response = await fetch(`/api/cruises/${cruiseId}`)
+        const result = await response.json()
+        if (result.success && result.data) {
+          setCruise(result.data)
+        }
+      } catch (error) {
+        console.error("Error fetching cruise for booking:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (cruiseId) {
+      fetchCruise()
+    }
+  }, [cruiseId])
+
+  if (loading) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6 shadow-lg animate-pulse">
+        <div className="h-8 bg-muted rounded w-1/2 mb-4" />
+        <div className="space-y-4">
+          <div className="h-10 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+        </div>
+      </div>
+    )
+  }
+
+  const basePrice = cruise?.price || 0
   const guestCount = Number.parseInt(guests)
   const subtotal = basePrice * guestCount
   const taxes = Math.round(subtotal * 0.14)
   const total = subtotal + taxes
+  const originalPrice = Math.round(basePrice * 1.2)
 
   return (
     <div className="sticky top-24">
       <div className="bg-card rounded-xl border border-border p-6 shadow-lg">
         <div className="flex items-baseline justify-between mb-6">
           <div>
-            <span className="text-muted-foreground line-through text-sm">$1,099</span>
+            <span className="text-muted-foreground line-through text-sm">${originalPrice}</span>
             <div className="text-3xl font-bold text-primary">
-              $899
+              ${basePrice}
               <span className="text-base font-normal text-muted-foreground">/person</span>
             </div>
           </div>
@@ -74,7 +109,7 @@ export function BookingPanel() {
 
         <div className="border-t border-border pt-4 mb-6 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">$899 x {guestCount} guests</span>
+            <span className="text-muted-foreground">${basePrice} x {guestCount} guests</span>
             <span className="text-foreground">${subtotal}</span>
           </div>
           <div className="flex justify-between text-sm">
@@ -119,7 +154,7 @@ export function BookingPanel() {
               </div>
               <div className="bg-muted rounded-lg p-4">
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Royal Nile Experience</span>
+                  <span className="text-sm text-muted-foreground">{cruise?.nameEn}</span>
                   <span className="text-sm font-medium">${total}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
