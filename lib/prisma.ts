@@ -8,10 +8,10 @@ import { config } from 'dotenv'
 config({ path: path.resolve(process.cwd(), '.env.local') })
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.PostgreSQL
+  const connectionString = process.env.PostgreSQL || process.env.DATABASE_URL
   
   if (!connectionString) {
-    console.error("PostgreSQL environment variable is missing!")
+    console.error("Database connection string (PostgreSQL or DATABASE_URL) is missing!")
   }
 
   const pool = new pg.Pool({ 

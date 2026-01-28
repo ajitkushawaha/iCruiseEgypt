@@ -7,9 +7,15 @@ import { CruiseReviews } from "@/components/cruise-reviews"
 import { RelatedCruises } from "@/components/related-cruises"
 import { CheckCircle2, ShieldCheck, Zap, Clock, CreditCard } from "lucide-react"
 
+const getBaseUrl = () => {
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+};
+
 async function getCruise(id: string) {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const baseUrl = getBaseUrl();
     const res = await fetch(`${baseUrl}/api/cruises/${id}`, { cache: 'no-store' })
     if (!res.ok) return null
     const data = await res.json()
