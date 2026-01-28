@@ -67,14 +67,14 @@ export function HeroSection() {
 
             {/* Tabs Header */}
             <TabsList className="grid w-full sm:w-1/2 mx-auto grid-cols-2 h-12 sm:h-16 bg-muted/80 mb-4 rounded-lg sm:rounded-full">
-              <TabsTrigger value="classic" className="rounded-lg sm:rounded-full">
-                <Search className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
-                {t.hero.search}
-              </TabsTrigger>
-
               <TabsTrigger value="ai" className="rounded-lg sm:rounded-full">
                 <Sparkles className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
                 {t.hero.aiSearch}
+              </TabsTrigger>
+
+              <TabsTrigger value="classic" className="rounded-lg sm:rounded-full">
+                <Search className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t.hero.search}
               </TabsTrigger>
             </TabsList>
 

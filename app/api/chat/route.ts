@@ -36,47 +36,44 @@ async function handleChatRequest(messages: any[], useSecondary: boolean): Promis
         type: "function",
         function: {
           name: "search_cruises",
-          description: "Search for available Nile cruises. Use this when the user asks for recommendations, prices, or filtered results (luxury, budget, duration, etc.).",
+          description: "Search for Nile cruises based on user preferences. ALWAYS use this for recommendations.",
           parameters: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "General search term (e.g., 'Luxury', 'MS Farah', 'Luxe'). Optional if other filters are used.",
+                description: "Search keyword (e.g. 'Luxury', 'Modern').",
               },
               maxPrice: {
                 type: "integer",
-                description: "Maximum budget per person as a WHOLE NUMBER (e.g., 2000). DO NOT use strings.",
+                description: "Max budget per person.",
               },
               duration: {
                 type: "string",
-                description: "Duration filter (e.g., '3 Nights', '4 Nights', '7 Nights').",
+                enum: ["3 Nights", "4 Nights", "7 Nights"],
+                description: "Length of cruise.",
               },
             },
           },
-          required: [], // Make query optional to allow filtering by just duration/price
         },
       },
     ]
 
-    const systemInstruction = `You are an AI Trip Planner for iCruise Egypt. Your goal is to help users find the perfect Nile cruise through warm, human-like conversation.
+    const systemInstruction = `You are an AI Trip Planner for iCruise Egypt. 
+     
+     TOOL CALL RULES:
+     1. To search cruises, you MUST ONLY output the function call.
+     2. DO NOT include any text before or after the function call.
+     3. DO NOT use backticks or any markdown formatting around the tool call.
+     4. The function call must be PURE VALID JSON.
+     5. CRITICAL: The "maxPrice" parameter MUST be a NUMBER (e.g., 3000), NOT a string (e.g., "3000").
+     6. If you search, wait for the results before talking to the user.
 
-    CONVERSATION LOGIC:
-    1. If the user just says "hello", "hi", or asks how you are, respond warmly and ask how you can help with their travel plans. Don't jump into specific questions yet.
-    2. If the user expresses interest in a trip (e.g., "I want a romantic trip"), acknowledge the excitement and THEN ask for missing details:
-       - Duration (3, 4, or 7 nights)
-       - Budget per person
-       - Style preference (modern luxury vs classic traditional)
-    3. ONLY use the 'search_cruises' tool when you have enough context to provide meaningful recommendations.
-    4. When recommending cruises, explain WHY they fit the user's specific needs.
-
-    RESPONSE GUIDELINES:
-    - Provide ONLY ONE concise response.
-    - NEVER repeat yourself or the user's input.
-    - Use **bold** for cruise names.
-    - Use bullet points for key features.
-    - Keep sentences short and engaging.
-    - DO NOT use markdown tables.`
+     CONVERSATION STYLE:
+     - Warm, helpful, and concise.
+     - Use **bold** for cruise names.
+     - Use bullet points for features.
+     - Ask for Duration (3/4/7 nights) and Budget if missing.`
 
     // Prepare messages for Groq - Filter out any empty messages
     const groqMessages = [
@@ -108,50 +105,77 @@ async function handleChatRequest(messages: any[], useSecondary: boolean): Promis
     if (responseMessage.tool_calls) {
       const toolCall = responseMessage.tool_calls[0]
       const functionName = toolCall.function.name
-      const functionArgs = JSON.parse(toolCall.function.arguments)
+      let functionArgs: any = {}
+      
+      try {
+        // Clean the arguments string in case the model included backticks or extra text
+        let cleanArgs = toolCall.function.arguments.trim()
+        if (cleanArgs.startsWith("```json")) cleanArgs = cleanArgs.replace(/```json|```/g, "")
+        if (cleanArgs.startsWith("`")) cleanArgs = cleanArgs.replace(/`/g, "")
+        
+        functionArgs = JSON.parse(cleanArgs)
+      } catch (e) {
+        console.error("Failed to parse function args:", toolCall.function.arguments)
+        // Fallback to empty args if parsing fails
+      }
 
       if (functionName === "search_cruises") {
         console.log("Searching cruises with args:", functionArgs)
         
+        // Force maxPrice to be a number if it came as a string
+        if (typeof functionArgs.maxPrice === 'string') {
+          functionArgs.maxPrice = parseInt(functionArgs.maxPrice, 10);
+        }
         const query = functionArgs.query || ""
         const searchWords = query.length > 0 ? query.split(/\s+/).filter((word: string) => word.length > 2) : []
         
-        let cruises = await prisma.cruise.findMany({
-          where: {
-            AND: [
-              // Search by query if provided
-              query.length > 0 ? {
-                OR: [
-                  { nameEn: { contains: query, mode: "insensitive" } },
-                  { routeEn: { contains: query, mode: "insensitive" } },
-                  { descriptionEn: { contains: query, mode: "insensitive" } },
-                  { tags: { hasSome: searchWords.length > 0 ? searchWords : [query] } }
-                ]
-              } : {},
-              // Filter by price if provided
-              functionArgs.maxPrice ? { price: { lte: functionArgs.maxPrice } } : {},
-              // Filter by duration if provided
-              functionArgs.duration ? { duration: { contains: functionArgs.duration, mode: "insensitive" } } : {},
-            ]
-          },
-          take: 3,
-        })
-
-        // If no exact match, try searching by individual words
-        if (cruises.length === 0 && searchWords.length > 0) {
-          console.log("No exact match found, trying keyword search with:", searchWords)
+        let cruises = [];
+        try {
           cruises = await prisma.cruise.findMany({
             where: {
-              OR: searchWords.flatMap((word: string) => [
-                { nameEn: { contains: word, mode: "insensitive" } },
-                { routeEn: { contains: word, mode: "insensitive" } },
-                { descriptionEn: { contains: word, mode: "insensitive" } },
-              ]),
-              price: functionArgs.maxPrice ? { lte: functionArgs.maxPrice } : undefined,
-              duration: functionArgs.duration ? { contains: functionArgs.duration, mode: "insensitive" } : undefined,
+              AND: [
+                // Search by query if provided
+                query.length > 0 ? {
+                  OR: [
+                    { nameEn: { contains: query, mode: "insensitive" } },
+                    { routeEn: { contains: query, mode: "insensitive" } },
+                    { descriptionEn: { contains: query, mode: "insensitive" } },
+                    { tags: { hasSome: searchWords.length > 0 ? searchWords : [query] } }
+                  ]
+                } : {},
+                // Filter by price if provided
+                functionArgs.maxPrice ? { price: { lte: functionArgs.maxPrice } } : {},
+                // Filter by duration if provided
+                functionArgs.duration ? { duration: { contains: functionArgs.duration, mode: "insensitive" } } : {},
+              ]
             },
             take: 3,
           })
+
+          // If no exact match, try searching by individual words
+          if (cruises.length === 0 && searchWords.length > 0) {
+            console.log("No exact match found, trying keyword search with:", searchWords)
+            cruises = await prisma.cruise.findMany({
+              where: {
+                OR: searchWords.flatMap((word: string) => [
+                  { nameEn: { contains: word, mode: "insensitive" } },
+                  { routeEn: { contains: word, mode: "insensitive" } },
+                  { descriptionEn: { contains: word, mode: "insensitive" } },
+                ]),
+                price: functionArgs.maxPrice ? { lte: functionArgs.maxPrice } : undefined,
+                duration: functionArgs.duration ? { contains: functionArgs.duration, mode: "insensitive" } : undefined,
+              },
+              take: 3,
+            })
+          }
+        } catch (dbError: any) {
+          console.error("Database search error:", dbError.message);
+          // Return a fallback message if database is down
+          return new Response(new TextEncoder().encode(`data: ${JSON.stringify({ 
+            content: "I'm sorry, I'm having trouble accessing my cruise database right now. This usually happens if the database connection is blocked. Please try again in a moment or contact support if the issue persists." 
+          })}\n\n`), {
+            headers: { "Content-Type": "text/event-stream" },
+          });
         }
 
         console.log(`Found ${cruises.length} cruises`)

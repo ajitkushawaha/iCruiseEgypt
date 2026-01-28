@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter, Playfair_Display, Cairo } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { LanguageProvider } from "@/components/i18n/LanguageProvider"
+import { Providers } from "@/components/Providers"
 import { WhatsAppWidget } from "@/components/support/WhatsAppWidget"
 import "./globals.css"
 
@@ -49,11 +50,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${playfair.variable} ${cairo.variable} font-sans antialiased`}>
-        <LanguageProvider>
-          {children}
-          <WhatsAppWidget />
-          <Analytics />
-        </LanguageProvider>
+        <Providers>
+          <LanguageProvider>
+            {children}
+            <WhatsAppWidget />
+            <Analytics />
+          </LanguageProvider>
+        </Providers>
       </body>
     </html>
   )

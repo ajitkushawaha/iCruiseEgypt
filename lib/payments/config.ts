@@ -3,7 +3,7 @@
  * Supports Stripe and PayPal
  */
 
-export type PaymentMethod = 'stripe' | 'paypal' | 'bank_transfer';
+export type PaymentMethod = 'stripe' | 'paypal' | 'bank_transfer' | 'razorpay';
 
 export interface PaymentConfig {
   stripe: {
@@ -16,6 +16,11 @@ export interface PaymentConfig {
     clientId: string;
     clientSecret: string;
     environment: 'sandbox' | 'production';
+  };
+  razorpay: {
+    enabled: boolean;
+    keyId: string;
+    keySecret: string;
   };
   currency: string;
   defaultCurrency: string;
@@ -33,6 +38,11 @@ export function getPaymentConfig(): PaymentConfig {
       clientId: process.env.PAYPAL_CLIENT_ID || '',
       clientSecret: process.env.PAYPAL_CLIENT_SECRET || '',
       environment: (process.env.PAYPAL_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox',
+    },
+    razorpay: {
+      enabled: true,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+      keySecret: process.env.RAZORPAY_SECRET_KEY || '',
     },
     currency: process.env.DEFAULT_CURRENCY || 'USD',
     defaultCurrency: 'USD',

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
-import pg from 'pg'
+import * as pg from 'pg'
 import path from 'path'
 import { config } from 'dotenv'
 
@@ -8,13 +8,21 @@ import { config } from 'dotenv'
 config({ path: path.resolve(process.cwd(), '.env.local') })
 
 const prismaClientSingleton = () => {
-  const connectionString = `${process.env.PostgreSQL}`
+  const connectionString = process.env.PostgreSQL
   
+  if (!connectionString) {
+    console.error("PostgreSQL environment variable is missing!")
+  }
+
   const pool = new pg.Pool({ 
     connectionString,
     ssl: {
       rejectUnauthorized: false
-    }
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    keepAlive: true,
   })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })

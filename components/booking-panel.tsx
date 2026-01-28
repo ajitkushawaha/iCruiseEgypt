@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Users, Shield, Clock, CreditCard } from "lucide-react"
+import { Calendar, Users, Shield, Clock, CreditCard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useSession, signIn } from "next-auth/react"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -16,11 +18,32 @@ import {
 } from "@/components/ui/dialog"
 
 export function BookingPanel({ cruiseId }: { cruiseId: string }) {
+  const { data: session, status } = useSession()
   const [cruise, setCruise] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [guests, setGuests] = useState("2")
   const [date, setDate] = useState("")
   const [isBooking, setIsBooking] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  })
+
+  useEffect(() => {
+    if (session?.user) {
+      const names = session.user.name?.split(" ") || ["", ""]
+      setFormData({
+        firstName: names[0] || "",
+        lastName: names.slice(1).join(" ") || "",
+        email: session.user.email || "",
+        phone: "",
+      })
+    }
+  }, [session])
 
   useEffect(() => {
     const fetchCruise = async () => {
